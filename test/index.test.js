@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 require("@testing-library/jest-dom");
 
-describe("Weather Data App - Input clearing", () => {
+describe("Weather Alerts App - Input clearing", () => {
   let container;
   let fetchMock;
 
@@ -14,15 +14,7 @@ describe("Weather Data App - Input clearing", () => {
     fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        current_condition: [
-          {
-            temp_C: "20",
-            humidity: "65",
-            weatherDesc: [{ value: "Partly cloudy" }],
-          },
-        ],
-      }),
+      json: async () => ({ title: "Weather Alerts", features: [] }),
     });
     global.fetch = fetchMock;
 
@@ -38,23 +30,25 @@ describe("Weather Data App - Input clearing", () => {
     document.dispatchEvent(new Event("DOMContentLoaded"));
   });
 
-  it("calls fetch with the correct city in the URL", async () => {
+  it("calls fetch with the correct state in the URL", async () => {
     const { getByPlaceholderText, getByText } =
       require("@testing-library/dom").within(container);
 
-    const input = getByPlaceholderText("Enter city name");
-    const button = getByText("Get Weather Data");
+    const input = getByPlaceholderText("Enter state abbreviation");
+    const button = getByText("Get Weather Alerts");
 
-    input.value = "London";
+    input.value = "CA";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://wttr.in/London?format=j1");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.weather.gov/alerts/active?area=CA",
+    );
   });
 
-  it("displays fetched weather data in the DOM after a successful fetch", async () => {
+  it("displays fetched alert data in the DOM after a successful fetch", async () => {
     const { getByPlaceholderText, getByText } =
       require("@testing-library/dom").within(container);
 
@@ -62,61 +56,67 @@ describe("Weather Data App - Input clearing", () => {
       ok: true,
       status: 200,
       json: async () => ({
-        current_condition: [
-          {
-            temp_C: "15",
-            humidity: "70",
-            weatherDesc: [{ value: "Sunny" }],
-          },
+        title: "Weather Alerts",
+        features: [
+          { properties: { headline: "Flood warning in your area" } },
+          { properties: { headline: "Tornado watch for the region" } },
         ],
       }),
     });
 
-    const input = getByPlaceholderText("Enter city name");
-    const button = getByText("Get Weather Data");
+    const input = getByPlaceholderText("Enter state abbreviation");
+    const button = getByText("Get Weather Alerts");
 
-    input.value = "Paris";
+    input.value = "NY";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const displayDiv = container.querySelector("#weather-display");
-    expect(displayDiv).toHaveTextContent("Temperature: 15°C");
-    expect(displayDiv).toHaveTextContent("Humidity: 70%");
-    expect(displayDiv).toHaveTextContent("Description: Sunny");
+    const displayDiv = container.querySelector("#alerts-display");
+    expect(displayDiv).toHaveTextContent("Weather Alerts: 2");
+    expect(displayDiv).toHaveTextContent("Flood warning in your area");
+    expect(displayDiv).toHaveTextContent("Tornado watch for the region");
 
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        current_condition: [
+        title: "Weather Alerts",
+        features: [
+          { properties: { headline: "Flood warning in your area" } },
+          { properties: { headline: "Air quality alert in your area" } },
           {
-            temp_C: "10",
-            humidity: "80",
-            weatherDesc: [{ value: "Rainy" }],
+            properties: {
+              headline: "Severe thunderstorm warning in your area",
+            },
           },
+          { properties: { headline: "Tornado watch for the region" } },
         ],
       }),
     });
 
-    input.value = "Berlin";
+    input.value = "MN";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(displayDiv).toHaveTextContent("Temperature: 10°C");
-    expect(displayDiv).toHaveTextContent("Humidity: 80%");
-    expect(displayDiv).toHaveTextContent("Description: Rainy");
+    expect(displayDiv).toHaveTextContent("Weather Alerts: 4");
+    expect(displayDiv).toHaveTextContent("Flood warning in your area");
+    expect(displayDiv).toHaveTextContent("Air quality alert in your area");
+    expect(displayDiv).toHaveTextContent(
+      "Severe thunderstorm warning in your area",
+    );
+    expect(displayDiv).toHaveTextContent("Tornado watch for the region");
   });
 
   it("clears the input field after clicking fetch", async () => {
     const { getByPlaceholderText, getByText } =
       require("@testing-library/dom").within(container);
 
-    const input = getByPlaceholderText("Enter city name");
-    const button = getByText("Get Weather Data");
+    const input = getByPlaceholderText("Enter state abbreviation");
+    const button = getByText("Get Weather Alerts");
 
-    input.value = "Tokyo";
+    input.value = "TX";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -129,10 +129,10 @@ describe("Weather Data App - Input clearing", () => {
       require("@testing-library/dom").within(container);
     fetchMock.mockRejectedValue(new Error("Network failure"));
 
-    const input = getByPlaceholderText("Enter city name");
-    const button = getByText("Get Weather Data");
+    const input = getByPlaceholderText("Enter state abbreviation");
+    const button = getByText("Get Weather Alerts");
 
-    input.value = "InvalidCity";
+    input.value = "ZZ";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -143,7 +143,7 @@ describe("Weather Data App - Input clearing", () => {
 
     fetchMock.mockRejectedValue(new Error("Other issue"));
 
-    input.value = "AnotherInvalid";
+    input.value = "ZZ";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -158,10 +158,10 @@ describe("Weather Data App - Input clearing", () => {
 
     fetchMock.mockRejectedValue(new Error("Network issue"));
 
-    const input = getByPlaceholderText("Enter city name");
-    const button = getByText("Get Weather Data");
+    const input = getByPlaceholderText("Enter state abbreviation");
+    const button = getByText("Get Weather Alerts");
 
-    input.value = "InvalidCity";
+    input.value = "ZZ";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -174,17 +174,12 @@ describe("Weather Data App - Input clearing", () => {
       ok: true,
       status: 200,
       json: async () => ({
-        current_condition: [
-          {
-            temp_C: "25",
-            humidity: "60",
-            weatherDesc: [{ value: "Clear sky" }],
-          },
-        ],
+        title: "Weather Alerts",
+        features: [{ properties: { headline: "Heat advisory in your area" } }],
       }),
     });
 
-    input.value = "Madrid";
+    input.value = "FL";
     button.click();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
